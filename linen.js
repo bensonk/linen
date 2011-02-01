@@ -1,30 +1,37 @@
 function linen(input) {
-  function handle_attributes(block) {
-    // TODO
-    // (class)
-    // (#id)
-    // {style}
-    // [language]
-
-    // TODO: do something
-    return block;
-  }
-
-  function handle_alignment(block) {
-    // TODO
-    // > right
-    // < left
-    // = center
-    // <> justify
-
-    // TODO: do something
-    return block;
-  }
-
   function handle_block_operations(block) {
-    // TODO Handle extended blocks
+    function handle_attributes(block) {
+      // TODO
+      // (class)
+      // (#id)
+      // {style}
+      // [language]
+  
+      // TODO: do something
+      return block;
+    }
+  
+    function handle_alignment(block) {
+      // TODO
+      // > right
+      // < left
+      // = center
+      // <> justify
+  
+      // TODO: do something
+      return block;
+    }
 
-    // TODO
+    function handle_extended_blocks(block) {
+      // TODO Handle extended blocks
+      // p..
+      // bq..
+      // bc..
+      // pre..
+      return block;
+    }
+
+    // TODO: Actual Blocks
     // hn. heading
     // bq. Blockquote
     // fnn. Footnote
@@ -32,13 +39,13 @@ function linen(input) {
     // bc. Block code
     // pre. Pre-formatted
 
-    // TODO
+    // TODO: Lists
     // # Numeric list
     // * Bulleted list
 
-    // TODO: do something
     return block;
   }
+
 
   function handle_images(block) {
     // TODO
