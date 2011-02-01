@@ -1,0 +1,5 @@
+h1. Linen
+
+Linen aims to be a compact, modular, readable, fast textile translator for JavaScript.  Outside of a javascript runtime, it has no dependencies.  It's suitable for embedding in an html document for rendering a live preview of textile content, or for use on the server with a runtime like node.js.  
+
+Linen is not complete.  It does not work, so please don't try to use it yet.  
