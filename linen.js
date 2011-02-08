@@ -61,6 +61,7 @@ function lex(doc) {
       // function is designed to lex. Here, we'll return our result, and this
       // function can die happy.
       else if(c == '.') {
+        // TODO: Check for '..' here, too.
         return [ res, block.slice(++i, block.length).trim() ]
           break;
       }
@@ -102,6 +103,9 @@ function do_substitutions(text) {
              // Acronyms
              .replace(/([A-Z]{2,})\(([^)]+)\)/, "<acronym title=\"$2\">$1</acronym>")
              .replace(/([A-Z]{2,})/, "<span class=\"caps\">$1</span>")
+
+             // Citations
+             .replace(/\?\?([^\?]+)\?\?/, "<cite>$1</cite>")
 
              // Bolding
              .replace(/\*([^\*]+)\*/, "<strong>$1</strong>")
@@ -178,6 +182,8 @@ function parse(doc) {
 
     return obj;
   }
+
+  // TODO: Recognize multiblock syntax
 
   var res = [];
   for(var i in doc)
@@ -291,6 +297,7 @@ var test = "p>(funstuff){color: green}. This is a test.\n\n"+
            "pre{color: white; padding: 1em; background-color: darkblue;}. I walked in the valley of the shadow of death.\n\n"+
            "Here, let's test some symbols... RegisteredTrademark(r), Trademark(tm), and Copyright (c) 2008\n\n"+
            "Let's try a TLA(Three Letter Acronym).\n\n"+
+           "Maybe a ??citation??, a ^superscript^, and a ~subscript~, just for fun.\n\n"+
            "\"And then he was all, 'That's what she said!' and I got really upset,\" she said.\n\n"+
            "I am now _testing_ some *modifiers*, so hold on to your -balls- +hats+.  I like to have fun -- it's one of my favourite things.  ";
 
