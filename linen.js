@@ -85,12 +85,50 @@ function lex(doc) {
   return result;
 }
 
+function do_substitutions(text) {
+              // Punctuation
+  return text.replace(/--/, "&#8212;")
+             .replace(/\n/, "<br/>")
+             .replace(/"([^"]*)"/, "&#8220;$1&#8221;")
+             .replace(/'([^']*)'/, '&#8216;$1&#8217;')
+             .replace(/'/, "&#8217;")
+             .replace(/ - /, " &endash; ")
+             .replace(/\.\.\./, "&#8230;")
+             .replace(/\(r\)/, "&#174;")
+             .replace(/\(tm\)/, "&#8482;")
+             .replace(/\(c\)/, "&#169;")
+             // TODO: dimension sign
+
+             // Acronyms
+             .replace(/([A-Z]{2,})\(([^)]+)\)/, "<acronym title=\"$2\">$1</acronym>")
+             .replace(/([A-Z]{2,})/, "<span class=\"caps\">$1</span>")
+
+             // Bolding
+             .replace(/\*([^\*]+)\*/, "<strong>$1</strong>")
+             .replace(/\*\*([^\*]+)\*\*/, "<b>$1</b>")
+
+             // Italics
+             .replace(/_([^_]+)_/, "<em>$1</em>")
+             .replace(/__([^_]+)__/, "<i>$1</i>")
+
+             // Insertions & Deletions
+             .replace(/\+([^\+]+)\+/, "<ins>$1</ins>")
+             .replace(/-([^-]+)-/, "<del>$1</del>")
+
+             // Insertions & Deletions
+             .replace(/\^([^\^]+)\^/, "<sup>$1</sup>")
+             .replace(/~([^~]+)~/, "<sub>$1</sub>");
+
+  // TODO: Links
+  // TODO: Images
+}
+
 function parse(doc) {
   function parse_block(block, content) {
     var obj = {
       original_data: block,
       block_type: block.shift(),
-      content: content,
+      content: do_substitutions(content),
       classes: "",
       id: "",
       lang: "",
@@ -248,8 +286,12 @@ var test = "p>(funstuff){color: green}. This is a test.\n\n"+
            "A *simple* example.\n\n"+
            "h2. A simple header.\n\n"+
            "h2<>(#header)[EN]. I want to go home.\n\n"+
-           "h3<>(.test#email)(asdf)(hqzh)<[EN]{padding: 5em}(53). somebody@example.com\n\n"+
+           "h3<>(.test#email)(asdf)(hqzh)<[EN]{padding: 2em}(53). somebody@example.com\n\n"+
            "h4<>(footie#gutter)(headie). Throw your trash over there, nobody will mind.\n\n"+
-           "pre{background-color: darkblue;}. I walked in the valley of the shadow of death.";
+           "pre{color: white; padding: 1em; background-color: darkblue;}. I walked in the valley of the shadow of death.\n\n"+
+           "Here, let's test some symbols... RegisteredTrademark(r), Trademark(tm), and Copyright (c) 2008\n\n"+
+           "Let's try a TLA(Three Letter Acronym).\n\n"+
+           "\"And then he was all, 'That's what she said!' and I got really upset,\" she said.\n\n"+
+           "I am now _testing_ some *modifiers*, so hold on to your -balls- +hats+.  I like to have fun -- it's one of my favourite things.  ";
 
 console.log(generate_code(parse(lex(test))));
