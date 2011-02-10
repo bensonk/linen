@@ -13,14 +13,14 @@ function lex(doc) {
       return list;
     }
 
-    // TODO: Make this return the right type. 
-    return {
-      content: parse_list(lex_list(b)),
-    };
+    var list = lex_list(b);
+    // TODO: Handle attrs.  This will likely mean refactoring, or lots of pain. Who wrote this damn grammar, anyway?
+    return { type: list[0].type, extended: false, attrs: [], content: list };
   }
 
   function lex_block(block) {
     var res = [];
+    var blockType = "";
 
     // First, we look for a block descriptor.
     var i = 0, c = block[0];
@@ -32,20 +32,20 @@ function lex(doc) {
     if(c == '*' || c == '#') { return handle_list(block) }
 
     // Blockquotes and Blocks of code
-    if(c == 'b') { res.push('b' + block[++i]) }
+    if(c == 'b') { blockType = 'b' + block[++i] }
 
     // Headings
-    if(c == "h") { res.push('h' + block[++i]) }
+    if(c == "h") { blockType = 'h' + block[++i] }
 
     // ps and pres
     if(c == "p") {
       // TODO: Figure out why this is so broken
       if(block.slice(i, i+3) == 'pre') {
         i += 2;
-        res.push('pre');
+        blockType = "pre";
       }
       else {
-        res.push("p");
+        blockType = "p";
       }
     }
 
@@ -91,23 +91,22 @@ function lex(doc) {
       // function is designed to lex. Here, we'll return our result, and this
       // function can die happy.
       else if(c == '.') {
-        // TODO: Check for '..' here, too.
-        return [ res, block.slice(++i, block.length).trim() ]
-          break;
+        // See if it's an extended block (i.e. the terminator is '..')
+        var isExtended = block[i+1] == '.';
+        return { type: blockType, extended: isExtended, attrs: res, content: block.slice(++i, block.length).trim() };
       }
 
       // This implies a sort of parse error.  Sadly, my understanding of the
       // textile grammar leads to unholy mixing of lexing and parsing, which is
       // awfully messy, but here we are. 
       else {
-        res = [ [ "p" ], block.trim() ];
-        break;
+        return { type: "p", attrs: [], extended: false, content: block.trim() };
       }
     }
-    return res;
+    return null;
   }
 
-  var blocks = doc.split("\n\n");
+  var blocks = doc.split(/\n\n+/);
   var result = [];
   for(var i in blocks) {
     result.push(lex_block(blocks[i]));
@@ -158,7 +157,8 @@ function do_substitutions(text) {
 }
 
 function parse(doc) {
-  function parse_list(items) {
+  function parse_list(list) {
+    var items = list.content;
     var prevIndent = 1;
     var ret = [];
     var current = ret;
@@ -189,8 +189,10 @@ function parse(doc) {
       prevIndent = it.indent;
     }
 
+    // TODO: Handle attrs
+    console.log(ret);
     return {
-      block_type: block.shift(),
+      block_type: list.type,
       content: ret,
       classes: "",
       id: "",
@@ -200,10 +202,14 @@ function parse(doc) {
     };
   }
 
-  function parse_block(block, content) {
+  function parse_block(block) {
+    // Shortcut out with a call to parse_list, which does a lot of special casing
+    if(block.type == "li" || block.type == "ul")
+      return parse_list(block);
+
     var obj = {
-      block_type: block.shift(),
-      content: do_substitutions(content),
+      block_type: block.type,
+      content: do_substitutions(block.content),
       classes: "",
       id: "",
       lang: "",
@@ -254,11 +260,11 @@ function parse(doc) {
     return obj;
   }
 
-  // TODO: Recognize multiblock syntax
+  // TODO: Handle the "extended" attribute, which indicates extended blocks. 
 
   var res = [];
   for(var i in doc)
-    res.push(parse_block(doc[i][0], doc[i][1]));
+    res.push(parse_block(doc[i]));
   return res;
 }
 
@@ -370,7 +376,7 @@ var test = "p>(funstuff){color: green}. This is a test.\n\n"+
            "Let's try a TLA(Three Letter Acronym).\n\n"+
            "Maybe a ??citation??, a ^superscript^, and a ~subscript~, just for fun.\n\n"+
            "\"And then he was all, 'That's what she said!' and I got really upset,\" she said.\n\n"+
-           "* foo\n* bar\n* baz\n** one\n** two\n*** six\n** three\n* bat"+
+           "* foo\n* bar\n* baz\n** one\n** two\n*** six\n** three\n* bat\n\n"+
            "I am now _testing_ some *modifiers*, so hold on to your -balls- +hats+.  I like to have fun -- it's one of my favourite things.  ";
 
 console.log(generate_code(parse(lex(test))));
