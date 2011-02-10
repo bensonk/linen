@@ -166,7 +166,7 @@ function parse(doc) {
 
     for(var i = 0; i < items.length; i++) {
       var it = items[i];
-      it.stuff = do_substitutions(it.content);
+      it.content = do_substitutions(it.content);
 
       // Increase nesting if needed
       if(it.indent > prevIndent) {
