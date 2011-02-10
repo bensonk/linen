@@ -190,7 +190,6 @@ function parse(doc) {
     }
 
     // TODO: Handle attrs
-    console.log(ret);
     return {
       block_type: list.type,
       content: ret,
@@ -216,8 +215,8 @@ function parse(doc) {
       style: "",
       alignment: ""
     };
-    for(var i in block) {
-      var atom = block[i];
+    for(var i in block.attrs) {
+      var atom = block.attrs[i];
 
       // Look for classes and/or an id
       if(atom[0] == '(') {
