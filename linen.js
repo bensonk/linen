@@ -25,10 +25,10 @@ function lex(doc) {
     // First, we look for a block descriptor.
     var i = 0, c = block[0];
     if(c == 'f' && block[i+1] == 'n') {
-      // TODO: Implement footnotes here. 
+      // TODO: Implement footnotes here.
     }
-    
-    // Lists are pretty different, so we'll treat them completely differently here. 
+
+    // Lists are pretty different, so we'll treat them completely differently here.
     if(c == '*' || c == '#') { return handle_list(block) }
 
     // Blockquotes and Blocks of code
@@ -98,7 +98,7 @@ function lex(doc) {
 
       // This implies a sort of parse error.  Sadly, my understanding of the
       // textile grammar leads to unholy mixing of lexing and parsing, which is
-      // awfully messy, but here we are. 
+      // awfully messy, but here we are.
       else {
         return { type: "p", attrs: [], extended: false, content: block.trim() };
       }
@@ -191,7 +191,7 @@ function parse(doc) {
 
     // TODO: Handle attrs
     return {
-      block_type: list.type,
+      type: list.type,
       content: ret,
       classes: "",
       id: "",
@@ -207,7 +207,7 @@ function parse(doc) {
       return parse_list(block);
 
     var obj = {
-      block_type: block.type,
+      type: block.type,
       content: do_substitutions(block.content),
       classes: "",
       id: "",
@@ -259,7 +259,7 @@ function parse(doc) {
     return obj;
   }
 
-  // TODO: Handle the "extended" attribute, which indicates extended blocks. 
+  // TODO: Handle the "extended" attribute, which indicates extended blocks.
 
   var res = [];
   for(var i in doc)
@@ -293,45 +293,66 @@ function generate_code(blocks) {
 
     // Generate different kinds of code blocks:
     function heading(b) {
-      return "<" + b.block_type + " " + html_attrs(b) + ">" +
-               b.content + 
-             "</" + b.block_type + ">";
+      return "<" + b.type + " " + html_attrs(b) + ">" +
+               b.content +
+             "</" + b.type + ">";
     }
     function blockquote(b) {
-      return "<blockquote " + html_attrs(b) + "><p>" + 
-                b.content + 
+      return "<blockquote " + html_attrs(b) + "><p>" +
+                b.content +
               "</p></blockquote>";
     }
     function footnote(b) {
-      return "<p" + html_attrs(b) + "><sup>" + b.number + "</sup>" + 
-                b.content + 
+      // TODO: Handle footnote numbers properly
+      return "<p" + html_attrs(b) + "><sup>" + b.number + "</sup>" +
+                b.content +
               "</p>"
     }
     function paragraph(b) {
-      return "<p " + html_attrs(b) + ">" + 
-                b.content + 
+      return "<p " + html_attrs(b) + ">" +
+                b.content +
               "</p>";
     }
     function blockcode(b) {
       // TODO: Change this to fit the reference implementation,
-      // if I can think of a good reason to. 
+      // if I can think of a good reason to.
       return "<pre " + html_attrs(b) + "><code>" +
-               b.content + 
+               b.content +
              "</code></pre>";
     }
     function preformatted(b) {
       return "<pre " + html_attrs(b) + ">" +
-               b.content + 
+               b.content +
              "</pre>";
     }
-    function ordered_list(b) {
-      // TODO: Write this. 
-    }
-    function unordered_list(b) {
-      // TODO: Write this. 
+
+    function list(listObj) {
+      function list_generator(items) {
+        var ret = "<" + items[0].type + ">";
+
+        for(var i in items) {
+          var it = items[i];
+          if(it.type) {
+            ret += "<li>" + it.content;
+            // Check for a sublist
+            if(items[i+1] && items[i+1].type == undefined)
+              ret += list_generator(items[++i]);
+            ret += "</li>";
+          }
+          else {
+            ret += list_generator(it);
+          }
+        }
+        ret += "</" + (items[0].type) + ">";
+
+        return ret;
+      }
+      // TODO: Add attributes somehow
+
+      return list_generator(listObj.content);
     }
 
-    switch(block.block_type) {
+    switch(block.type) {
       case "h1":
       case "h2":
       case "h3":
@@ -341,7 +362,7 @@ function generate_code(blocks) {
         return heading(block);
       case "bq":
         return blockquote(block);
-      case "fn": // TODO: Handle footnote numbers
+      case "fn":
         return footnote(block);
       case "p":
         return paragraph(block);
@@ -349,10 +370,9 @@ function generate_code(blocks) {
         return blockcode(block);
       case "pre":
         return preformatted(block);
-      case "ul": // TODO: This
-        return unordered_list(block);
-      case "ol": // TODO: This too
-        return ordered_list(block);
+      case "ul":
+      case "ol":
+        return list(block);
     }
   }
 
