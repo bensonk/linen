@@ -1,18 +1,48 @@
 function lex(doc) {
+  function handle_list(b) {
+    function lex_list(list_text) {
+      var items = list_text.split("\n");
+      var list = [];
+      for(var i in items) {
+        var parts = /^(\*+|#+)\s+(.*)/.exec(items[i]);
+        if(parts) {
+          types = { "*": "ul", "#": "ol" };
+          list.push({ type: types[parts[1][0]], indent: parts[1].length, content: parts[2] });
+        }
+      }
+      return list;
+    }
+
+    // TODO: Make this return the right type. 
+    return {
+      content: parse_list(lex_list(b)),
+    };
+  }
+
   function lex_block(block) {
     var res = [];
 
     // First, we look for a block descriptor.
     var i = 0, c = block[0];
-    // TODO: Implement footnotes here. 
-    // TODO: Implement lists here. 
+    if(c == 'f' && block[i+1] == 'n') {
+      // TODO: Implement footnotes here. 
+    }
+    
+    // Lists are pretty different, so we'll treat them completely differently here. 
+    if(c == '*' || c == '#') { return handle_list(block) }
+
+    // Blockquotes and Blocks of code
     if(c == 'b') { res.push('b' + block[++i]) }
+
+    // Headings
     if(c == "h") { res.push('h' + block[++i]) }
+
+    // ps and pres
     if(c == "p") {
       // TODO: Figure out why this is so broken
       if(block.slice(i, i+3) == 'pre') {
-        res.push('pre');
         i += 2;
+        res.push('pre');
       }
       else {
         res.push("p");
@@ -128,9 +158,50 @@ function do_substitutions(text) {
 }
 
 function parse(doc) {
+  function parse_list(items) {
+    var prevIndent = 1;
+    var ret = [];
+    var current = ret;
+    var stack = [];
+
+    for(var i = 0; i < items.length; i++) {
+      var it = items[i];
+      it.stuff = do_substitutions(it.content);
+
+      // Increase nesting if needed
+      if(it.indent > prevIndent) {
+        for(var j = 0; j < it.indent - prevIndent; j++) {
+          // Save current for later
+          stack.push(current);
+          var newList = [];
+          current.push(newList);
+          current = newList;
+        }
+      }
+
+      // Decrease nesting if needed
+      if(it.indent < prevIndent) {
+        for(var j = 0; j < prevIndent - it.indent; j++)
+          current = stack.pop();
+      }
+
+      current.push(it);
+      prevIndent = it.indent;
+    }
+
+    return {
+      block_type: block.shift(),
+      content: ret,
+      classes: "",
+      id: "",
+      lang: "",
+      style: "",
+      alignment: ""
+    };
+  }
+
   function parse_block(block, content) {
     var obj = {
-      original_data: block,
       block_type: block.shift(),
       content: do_substitutions(content),
       classes: "",
@@ -299,6 +370,7 @@ var test = "p>(funstuff){color: green}. This is a test.\n\n"+
            "Let's try a TLA(Three Letter Acronym).\n\n"+
            "Maybe a ??citation??, a ^superscript^, and a ~subscript~, just for fun.\n\n"+
            "\"And then he was all, 'That's what she said!' and I got really upset,\" she said.\n\n"+
+           "* foo\n* bar\n* baz\n** one\n** two\n*** six\n** three\n* bat"+
            "I am now _testing_ some *modifiers*, so hold on to your -balls- +hats+.  I like to have fun -- it's one of my favourite things.  ";
 
 console.log(generate_code(parse(lex(test))));
