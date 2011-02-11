@@ -459,7 +459,7 @@ var linen = (function() {
 
 // Export to let node.js and other CommonJS
 // compatible frameworks see our code:
-if(exports) {
+if(typeof exports != 'undefined') {
   exports.linen = linen;
   exports.textilize = linen;
 }
