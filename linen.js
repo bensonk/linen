@@ -17,8 +17,31 @@ var linen = (function() {
       }
 
       var list = lex_list(b);
-      // TODO: Handle attrs.  This will likely mean refactoring, or lots of pain. Who wrote this damn grammar, anyway?
-      return { type: list[0].type, extended: false, attrs: [], content: list };
+      // TODO: Handle attrs.  This will likely mean refactoring, or lots of
+      // pain. Who wrote this damn grammar, anyway?
+      return {
+        type: list[0].type,
+        extended: false,
+        attrs: [],
+        content: list
+      };
+    }
+
+    function lex_table(block) {
+      var lines = block.split("\n");
+      var ret = [];
+      for(var i in lines) {
+        var line = lines[i].replace(/^\|/, "").replace(/\|$/, "");
+        ret.push(line.split("|"));
+      }
+
+      // TODO: handle attrs
+      return {
+        type: 'table',
+        extended: false,
+        attrs: [],
+        content: ret
+      };
     }
 
     function lex_block(block) {
@@ -34,6 +57,9 @@ var linen = (function() {
 
       // Lists are pretty different, so we'll treat them completely differently here.
       if(c == '*' || c == '#') { return handle_list(block) }
+
+      // Tables are also different, so they get their own function too.
+      if(c == '|') { return lex_table(block) }
 
       // Blockquotes and Blocks of code
       if(c == 'b') { blockType = 'b' + block[++i] }
@@ -97,7 +123,12 @@ var linen = (function() {
         else if(c == '.') {
           // See if it's an extended block (i.e. the terminator is '..')
           var isExtended = block[i+1] == '.';
-          return { type: blockType, extended: isExtended, attrs: res, content: block.slice(++i, block.length).trim() };
+          return {
+            type: blockType,
+            extended: isExtended,
+            attrs: res,
+            content: block.slice(++i, block.length).trim()
+          };
         }
 
         // This implies a sort of parse error.  Sadly, my understanding of the
@@ -113,13 +144,16 @@ var linen = (function() {
     var blocks = doc.split(/\n\n+/);
     var result = [];
     for(var i in blocks) {
-      result.push(lex_block(blocks[i]));
+      var lexed = lex_block(blocks[i]);
+      if(lexed) result.push(lexed);
     }
 
     return result;
   }
 
   function do_substitutions(text) {
+    // TODO: Make a function to do attributes on sub-blocks, and apply it.
+
                 // Punctuation
     return text.replace(/--/, "&#8212;")
                .replace(/\n/, "<br/>")
@@ -134,11 +168,14 @@ var linen = (function() {
                // TODO: dimension sign
 
                // Acronyms
-               .replace(/([A-Z]{2,})\(([^)]+)\)/, "<acronym title=\"$2\">$1</acronym>")
+               .replace(/([A-Z]{2,})\(([^)]+)\)/, "<span class=\"caps\"><acronym title=\"$2\">$1</acronym></span>")
                .replace(/([A-Z]{2,})/, "<span class=\"caps\">$1</span>")
 
                // Citations
                .replace(/\?\?([^\?]+)\?\?/, "<cite>$1</cite>")
+
+               // Spans
+               .replace(/%([^%]+)%/, "<span>$1</span>")
 
                // Bolding
                .replace(/\*([^\*]+)\*/, "<strong>$1</strong>")
@@ -205,10 +242,25 @@ var linen = (function() {
       };
     }
 
+    function parse_table(block) {
+      return {
+        type: "table",
+        content: block.content,
+        classes: "",
+        id: "",
+        lang: "",
+        style: "",
+        alignment: ""
+      };
+    }
+
     function parse_block(block) {
       // Shortcut out with a call to parse_list, which does a lot of special casing
       if(block.type == "ol" || block.type == "ul")
         return parse_list(block);
+
+      if(block.type == "table")
+        return parse_table(block);
 
       var obj = {
         type: block.type,
@@ -329,6 +381,19 @@ var linen = (function() {
                  b.content +
                "</pre>";
       }
+      function table(b) {
+        var ret = "<table " + html_attrs(b) + ">";
+        for(var i in b.content) {
+          var line = b.content[i];
+          ret += "<tr>";
+          for(var j in line) {
+            ret += "<td>" + line[j] + "</td>";
+          }
+          ret += "</tr>";
+        }
+        ret += "</table>";
+        return ret;
+      }
 
       function list(listObj) {
         function list_generator(items) {
@@ -374,6 +439,8 @@ var linen = (function() {
           return blockcode(block);
         case "pre":
           return preformatted(block);
+        case "table":
+          return table(block);
         case "ul":
         case "ol":
           return list(block);
@@ -386,7 +453,7 @@ var linen = (function() {
     return ret;
   }
 
-  // And finally, we'll export this outside this crazy scope. 
+  // And finally, we'll export this outside this crazy scope.
   return function(textile) { return generate_code(parse(lex(textile))) };
 })();
 
