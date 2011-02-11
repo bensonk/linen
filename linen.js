@@ -52,7 +52,7 @@ var linen = (function() {
       var i = 0, c = block[0];
       if(c == 'f' && block[i+1] == 'n') {
         // TODO: Implement footnotes properly
-        blockType = "f" + block[i+1];
+        blockType = "f" + block[++i];
       }
 
       // Lists are pretty different, so we'll treat them completely differently here.
