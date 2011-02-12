@@ -162,7 +162,7 @@ var linen = (function() {
     // TODO: Make a function to do attributes on sub-blocks, and apply it.
 
                // We do quotes first because they are problematic. 
-    return text.replace(/(\s)"([^"]*)(\s)"/g, "$1&#8220;$2&#8221;$3")
+    return text.replace(/(\W)"([^"]*)(\W)"/g, "$1&#8220;$2&#8221;$3")
 
                // Links
                .replace(/"([^"]+)":(http\S+)/g, "<a href=\"$2\">$1</a>")
@@ -174,7 +174,7 @@ var linen = (function() {
                // Punctuation
                .replace(/--/g, "&#8212;")
                .replace(/\n/g, "<br/>")
-               .replace(/(\s)'([^']*)'(\s)/g, '$1&#8216;$2&#8217;$3')
+               .replace(/(\W)'([^']*)'(\W)/g, '$1&#8216;$2&#8217;$3')
                .replace(/'/g, "&#8217;")
                .replace(/ - /g, " &#8211; ")
                .replace(/\.\.\./g, "&#8230;")
