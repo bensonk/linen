@@ -69,7 +69,6 @@ var linen = (function() {
 
       // ps and pres
       if(c == "p") {
-        // TODO: Figure out why this is so broken
         if(block.slice(i, i+3) == 'pre') {
           i += 2;
           blockType = "pre";
@@ -152,49 +151,63 @@ var linen = (function() {
   }
 
   function do_substitutions(text) {
+    // This is a simple substitution based system.  It might be worth
+    // considering implementing this with a real parser, but that does sound
+    // like a great deal of work.  For the most part, we can fake it with
+    // clever regex substitutions, but sometimes there's a danger of
+    // substituting something that we ought to be leaving alone (like, for
+    // example, a URL with underscores in it).
+
+
     // TODO: Make a function to do attributes on sub-blocks, and apply it.
 
-                // Punctuation
-    return text.replace(/--/, "&#8212;")
-               .replace(/\n/, "<br/>")
-               .replace(/"([^"]*)"/, "&#8220;$1&#8221;")
-               .replace(/'([^']*)'/, '&#8216;$1&#8217;')
-               .replace(/'/, "&#8217;")
-               .replace(/ - /, " &#8211; ")
-               .replace(/\.\.\./, "&#8230;")
-               .replace(/\(r\)/, "&#174;")
-               .replace(/\(tm\)/, "&#8482;")
-               .replace(/\(c\)/, "&#169;")
+               // We do quotes first because they are problematic. 
+    return text.replace(/(\s)"([^"]*)(\s)"/g, "$1&#8220;$2&#8221;$3")
+
+               // Links
+               .replace(/"([^"]+)":(http\S+)/g, "<a href=\"$2\">$1</a>")
+
+               // Images
+               .replace(/!([^!]+)!:(http\S+)/g, "<a href=\"$2\"><img src=\"$1\"/></a>")
+               .replace(/!([^!]+)!/g, "<img src=\"$1\"/>")
+
+               // Punctuation
+               .replace(/--/g, "&#8212;")
+               .replace(/\n/g, "<br/>")
+               .replace(/(\s)'([^']*)'(\s)/g, '$1&#8216;$2&#8217;$3')
+               .replace(/'/g, "&#8217;")
+               .replace(/ - /g, " &#8211; ")
+               .replace(/\.\.\./g, "&#8230;")
+               .replace(/\(r\)/g, "&#174;")
+               .replace(/\(tm\)/g, "&#8482;")
+               .replace(/\(c\)/g, "&#169;")
                // TODO: dimension sign
 
                // Acronyms
-               .replace(/([A-Z]{2,})\(([^)]+)\)/, "<span class=\"caps\"><acronym title=\"$2\">$1</acronym></span>")
-               .replace(/([A-Z]{2,})/, "<span class=\"caps\">$1</span>")
+               .replace(/([A-Z]{2,})\(([^)]+)\)/g, "<span class=\"caps\"><acronym title=\"$2\">$1</acronym></span>")
+               .replace(/([A-Z]{2,})/g, "<span class=\"caps\">$1</span>")
 
                // Citations
-               .replace(/\?\?([^\?]+)\?\?/, "<cite>$1</cite>")
-
+               .replace(/\?\?([^\?]+)\?\?/g, "<cite>$1</cite>")
+               //
                // Spans
-               .replace(/%([^%]+)%/, "<span>$1</span>")
+               .replace(/%([^%]+)%/g, "<span>$1</span>")
 
                // Bolding
-               .replace(/\*([^\*]+)\*/, "<strong>$1</strong>")
-               .replace(/\*\*([^\*]+)\*\*/, "<b>$1</b>")
+               .replace(/\*([^\*]+)\*/g, "<strong>$1</strong>")
+               .replace(/\*\*([^\*]+)\*\*/g, "<b>$1</b>")
 
                // Italics
-               .replace(/_([^_]+)_/, "<em>$1</em>")
-               .replace(/__([^_]+)__/, "<i>$1</i>")
+               .replace(/\s+_([^_]+)_\s+/g, "<em>$1</em>")
+               .replace(/\s+__([^_]+)__\s+/g, "<i>$1</i>")
 
                // Insertions & Deletions
-               .replace(/\+([^\+]+)\+/, "<ins>$1</ins>")
-               .replace(/-([^-]+)-/, "<del>$1</del>")
+               .replace(/\+([^\+]+)\+/g, "<ins>$1</ins>")
+               .replace(/-([^-]+)-/g, "<del>$1</del>")
 
                // Insertions & Deletions
-               .replace(/\^([^\^]+)\^/, "<sup>$1</sup>")
-               .replace(/~([^~]+)~/, "<sub>$1</sub>");
-
-    // TODO: Links
-    // TODO: Images
+               .replace(/\^([^\^]+)\^/g, "<sup>$1</sup>")
+               .replace(/~([^~]+)~/g, "<sub>$1</sub>");
   }
 
   function parse(doc) {
