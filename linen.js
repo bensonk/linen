@@ -77,67 +77,25 @@ var linen = (function() {
           blockType = "p";
         }
       }
+      i++;
 
-      for(i++; i < block.length; i++) {
-        var c = block[i];
-
-        // look for Alignment indicators
-        if(c == '>') { res.push('>') }
-        else if(c == '=') { res.push('=') }
-        else if(c == '<') {
-          // This is a special case, because the <> pair is considered an atom
-          if(block[i+1] == '>') {
-            i++;
-            res.push('<>');
-          }
-          else {
-            res.push('<');
-          }
-        }
-
-        // Look for classes & ids
-        else if(c == '(') {
-          var start = i;
-          while(block[i++] !== ')') continue;
-          res.push(block.slice(start, i--));
-        }
-
-        // Look for languages
-        else if(c == '[') {
-          var start = i;
-          while(block[i++] !== ']') continue;
-          res.push(block.slice(start, i--));
-        }
-
-        // look for styles
-        else if(c == '{') {
-          var start = i;
-          while(block[i++] !== '}') continue;
-          res.push(block.slice(start, i--));
-        }
-
-        // look for our terminating character. It indicates the end of what this
-        // function is designed to lex. Here, we'll return our result, and this
-        // function can die happy.
-        else if(c == '.') {
-          // See if it's an extended block (i.e. the terminator is '..')
-          var isExtended = block[i+1] == '.';
-          return {
-            type: blockType,
-            extended: isExtended,
-            attrs: res,
-            content: block.slice(++i, block.length).trim()
-          };
-        }
-
-        // This implies a sort of parse error.  Sadly, my understanding of the
-        // textile grammar leads to unholy mixing of lexing and parsing, which is
-        // awfully messy, but here we are.
-        else {
-          return { type: "p", attrs: [], extended: false, content: block.trim() };
-        }
+      // TODO: Make sure this slice is right.
+      var obj = lex_attrs(block.slice(i, block.length));
+      var match = /^(\.+)/.exec(obj.content);
+      if(match) {
+        obj.type = blockType;
+        obj.content = obj.content.replace(/^(\.+)/, "");
+        // TODO: check for extended attrs
+        obj.extended = false;
+        obj.noBlock = false;
       }
-      return null;
+      else {
+        obj.type = "p";
+        obj.content = block;
+        obj.extended = false;
+        obj.noBlock = true;
+      }
+      return obj;
     }
 
     var blocks = doc.split(/\n\n+/);
@@ -148,6 +106,59 @@ var linen = (function() {
     }
 
     return result;
+  }
+
+  function lex_attrs(block) {
+    var attrs = [];
+
+    for(var i = 0; i < block.length; i++) {
+      var c = block[i];
+
+      // look for Alignment indicators
+      if(c == '>') { attrs.push('>') }
+      else if(c == '=') { attrs.push('=') }
+      else if(c == '<') {
+        // This is a special case, because the <> pair is considered an atom
+        if(block[i+1] == '>') {
+          i++;
+          attrs.push('<>');
+        }
+        else {
+          attrs.push('<');
+        }
+      }
+
+      // Look for classes & ids
+      else if(c == '(') {
+        var start = i;
+        while(block[i++] !== ')') continue;
+        attrs.push(block.slice(start, i--));
+      }
+
+      // Look for languages
+      else if(c == '[') {
+        var start = i;
+        while(block[i++] !== ']') continue;
+        attrs.push(block.slice(start, i--));
+      }
+
+      // look for styles
+      else if(c == '{') {
+        var start = i;
+        while(block[i++] !== '}') continue;
+        attrs.push(block.slice(start, i--));
+      }
+
+      // We've reached the end of what we can recognize, so we bail.
+      else {
+        break;
+      }
+    }
+
+    return {
+      attrs: attrs,
+      content: block.slice(i, block.length)
+    };
   }
 
   function do_substitutions(text) {
@@ -161,7 +172,7 @@ var linen = (function() {
 
     // TODO: Make a function to do attributes on sub-blocks, and apply it.
 
-               // We do quotes first because they are problematic. 
+               // We do quotes first because they are problematic.
     return text.replace(/(\W)"([^"]*)(\W)"/g, "$1&#8220;$2&#8221;$3")
 
                // Links
