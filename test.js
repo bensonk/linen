@@ -1,3 +1,5 @@
+console.log("Starting the tests.");
+
 // Some test data
 var tests = [ "p>(funstuff){color: green}. This is a test.\n\n"+
               "bc>(funstuff){color: green}. This is a test.\n\n"+
@@ -11,12 +13,14 @@ var tests = [ "p>(funstuff){color: green}. This is a test.\n\n"+
               "Let's try a TLA(Three Letter Acronym).\n\n"+
               "Maybe a ??citation??, a ^superscript^, and a ~subscript~, just for fun.\n\n"+
               "\"And then he was all, 'That's what she said!' and I got really upset,\" she said.\n\n"+
-              "* foo\n* bar\n* baz\n** one\n** two\n*** six\n** three\n* bat\n\n"+
+              "*(action#card){display:inline} foo\n*(#two) bar\n* baz\n** one\n** two\n*** six\n** three\n* bat\n\n"+
               "I am now _testing_ some *modifiers*, so hold on to your -balls- +hats+.  I like to have fun -- it's one of my favourite - things.  ",
               "",
               "|foo|bar|baz|\n|one|two|three|\n|benson|ashleigh|brora|",
               "Testing a \"link\":http://www.google.com",
               "Here's an image:\n!http://farm6.static.flickr.com/5124/5285147296_3c465994cd_s.jpg!\nHere's one with a link:\n !http://farm6.static.flickr.com/5100/5422259101_a329ca0779_t.jpg!:http://google.com" ];
+
+
 var linen = require('./linen');
 for(var i in tests) {
   console.log(linen.linen(tests[i]));

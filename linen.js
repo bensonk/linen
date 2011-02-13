@@ -7,18 +7,22 @@ var linen = (function() {
         var items = list_text.split("\n");
         var list = [];
         for(var i in items) {
-          var parts = /^(\*+|#+)\s+(.*)/.exec(items[i]);
+          var parts = /^(\*+|#+)(\S*)\s+(.*)/.exec(items[i]);
           if(parts) {
             types = { "*": "ul", "#": "ol" };
-            list.push({ type: types[parts[1][0]], indent: parts[1].length, content: parts[2] });
+            list.push({
+              type: types[parts[1][0]],
+              indent: parts[1].length,
+              content: parts[3],
+              attrs: lex_attrs(parts[2]).attrs
+            });
           }
         }
         return list;
       }
 
       var list = lex_list(b);
-      // TODO: Handle attrs.  This will likely mean refactoring, or lots of
-      // pain. Who wrote this damn grammar, anyway?
+
       return {
         type: list[0].type,
         extended: false,
@@ -79,7 +83,6 @@ var linen = (function() {
       }
       i++;
 
-      // TODO: Make sure this slice is right.
       var obj = lex_attrs(block.slice(i, block.length));
       var match = /^(\.+)/.exec(obj.content);
       if(match) {
@@ -232,6 +235,7 @@ var linen = (function() {
       for(var i = 0; i < items.length; i++) {
         var it = items[i];
         it.content = do_substitutions(it.content);
+        it.attrs = parse_attrs(it.attrs);
 
         // Increase nesting if needed
         if(it.indent > prevIndent) {
@@ -254,10 +258,10 @@ var linen = (function() {
         prevIndent = it.indent;
       }
 
-      // TODO: Handle attrs
       return {
         type: list.type,
         content: ret,
+        attrs: ret[0].attrs,
         classes: "",
         id: "",
         lang: "",
@@ -269,6 +273,7 @@ var linen = (function() {
     function parse_table(block) {
       return {
         type: "table",
+        attrs: parse_attrs(block.attrs),
         content: block.content,
         classes: "",
         id: "",
@@ -278,25 +283,16 @@ var linen = (function() {
       };
     }
 
-    function parse_block(block) {
-      // Shortcut out with a call to parse_list, which does a lot of special casing
-      if(block.type == "ol" || block.type == "ul")
-        return parse_list(block);
-
-      if(block.type == "table")
-        return parse_table(block);
-
-      var obj = {
-        type: block.type,
-        content: do_substitutions(block.content),
-        classes: "",
-        id: "",
-        lang: "",
-        style: "",
-        alignment: ""
-      };
-      for(var i in block.attrs) {
-        var atom = block.attrs[i];
+    function parse_attrs(attrs) {
+      var ret = {
+          classes: "",
+          id: "",
+          lang: "",
+          style: "",
+          alignment: ""
+        };
+      for(var i in attrs) {
+        var atom = attrs[i];
 
         // Look for classes and/or an id
         if(atom[0] == '(') {
@@ -304,36 +300,56 @@ var linen = (function() {
           var parts = atom.replace(/^\(/, "").replace(/\)$/, "").split("#");
 
           // Add to classes
-          if(obj.classes == "")
-            obj.classes = parts[0];
+          if(ret.classes == "")
+            ret.classes = parts[0];
           else
-            obj.classes = obj.classes + " " + parts[0];
+            ret.classes = ret.classes + " " + parts[0];
 
           // Set ID if it hasn't already been set
-          if(parts.length > 1 && obj.id == "")
-            obj.id = parts[1];
+          if(parts.length > 1 && ret.id == "")
+            ret.id = parts[1];
         }
 
         // Look for a language
         else if(atom[0] == '[') {
-          obj.lang = atom.replace(/^\[/, "").replace(/\]$/, "");
+          ret.lang = atom.replace(/^\[/, "").replace(/\]$/, "");
         }
 
         // Look for a style
         else if(atom[0] == '{') {
-          obj.style = atom.replace(/^\{/, "").replace(/\}$/, "");
+          ret.style = atom.replace(/^\{/, "").replace(/\}$/, "");
         }
 
         // Look for alignment
         else {
           // Shortcut out if we already have an alignment set
-          if(obj.alignment == "") {
-            if(atom == '>') obj.alignment = "right";
-            if(atom == '<') obj.alignment = "left";
-            if(atom == '=') obj.alignment = "center";
-            if(atom == '<>') obj.alignment = "justify";
+          if(ret.alignment == "") {
+            if(atom == '>') ret.alignment = "right";
+            if(atom == '<') ret.alignment = "left";
+            if(atom == '=') ret.alignment = "center";
+            if(atom == '<>') ret.alignment = "justify";
           }
         }
+      }
+      return ret;
+    }
+
+    function parse_block(block) {
+      var obj;
+
+      // Some special stuff for lists
+      if(block.type == "ol" || block.type == "ul")
+        obj = parse_list(block);
+      // Some special stuff for tables
+      else if(block.type == "table")
+        obj = parse_table(block);
+      // The general case
+      else {
+        obj = {
+          type: block.type,
+          content: do_substitutions(block.content),
+          attrs: parse_attrs(block.attrs)
+        };
       }
 
       return obj;
@@ -351,34 +367,36 @@ var linen = (function() {
   function generate_code(blocks) {
     function generate_block(block) {
 
-      function html_attrs(b) {
-        var attrs = "";
-        if(b.classes)
-          attrs += "class=\"" + b.classes + "\" ";
+      function html_attrs(obj) {
+        var attrs = " ";
+        var attrObj = obj.attrs;
+        if(attrObj.classes)
+          attrs += "class=\"" + attrObj.classes + "\" ";
 
-        if(b.id)
-          attrs += "id=\"" + b.id + "\" ";
+        if(attrObj.id)
+          attrs += "id=\"" + attrObj.id + "\" ";
 
-        if(b.align)
-          b.style = "text-align: " + b.align + "; " + b.style
+        if(attrObj.align)
+          attrObj.style = "text-align: " + attrObj.align + "; " + attrObj.style
 
-        if(b.style)
-          attrs += "style=\"" + b.style + "\" ";
+        if(attrObj.style)
+          attrs += "style=\"" + attrObj.style + "\" ";
 
-        if(b.lang)
-          attrs += "lang=\"" + b.lang + "\" ";
+        if(attrObj.lang)
+          attrs += "lang=\"" + attrObj.lang + "\" ";
 
-        return attrs;
+        if(attrs == ' ') return "";
+        else return attrs;
       }
 
       // Generate different kinds of code blocks:
       function heading(b) {
-        return "<" + b.type + " " + html_attrs(b) + ">" +
+        return "<" + b.type + html_attrs(b) + ">" +
                  b.content +
                "</" + b.type + ">";
       }
       function blockquote(b) {
-        return "<blockquote " + html_attrs(b) + "><p>" +
+        return "<blockquote" + html_attrs(b) + "><p>" +
                   b.content +
                 "</p></blockquote>";
       }
@@ -389,24 +407,24 @@ var linen = (function() {
                 "</p>"
       }
       function paragraph(b) {
-        return "<p " + html_attrs(b) + ">" +
+        return "<p" + html_attrs(b) + ">" +
                   b.content +
                 "</p>";
       }
       function blockcode(b) {
         // TODO: Change this to fit the reference implementation,
         // if I can think of a good reason to.
-        return "<pre " + html_attrs(b) + "><code>" +
+        return "<pre" + html_attrs(b) + "><code>" +
                  b.content +
                "</code></pre>";
       }
       function preformatted(b) {
-        return "<pre " + html_attrs(b) + ">" +
+        return "<pre" + html_attrs(b) + ">" +
                  b.content +
                "</pre>";
       }
       function table(b) {
-        var ret = "<table " + html_attrs(b) + ">";
+        var ret = "<table" + html_attrs(b) + ">";
         for(var i in b.content) {
           var line = b.content[i];
           ret += "<tr>";
@@ -421,7 +439,7 @@ var linen = (function() {
 
       function list(listObj) {
         function list_generator(items) {
-          var ret = "<" + items[0].type + ">";
+          var ret = "<" + items[0].type + html_attrs(items[0]) + ">";
 
           for(var i in items) {
             var it = items[i];
