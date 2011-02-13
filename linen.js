@@ -170,6 +170,7 @@ var linen = (function() {
     };
   }
 
+
   function do_substitutions(text) {
     // This is a simple substitution based system.  It might be worth
     // considering implementing this with a real parser, but that does sound
@@ -178,57 +179,70 @@ var linen = (function() {
     // substituting something that we ought to be leaving alone (like, for
     // example, a URL with underscores in it).
 
+    function make_tag(tag, body, extras) {
+      if(typeof extras == "undefined") extras = "";
+      else extras = " " + extras;
+      var lexed = lex_attrs(body);
+      var attrs = parse_attrs(lexed.attrs);
+      return "<" + tag + html_attrs({ attrs: attrs }) + extras + ">" + lexed.content + "</"+tag+">";
+    }
 
-    // TODO: Make a function to do attributes on sub-blocks, and apply it.
+    function cleanup(body) {
+      return body.slice(1, body.length - 1);
+    }
 
                // We do quotes first because they are problematic.
-    return text.replace(/(\W)"([^"]*)(\W)"/g, "$1&#8220;$2&#8221;$3")
+    return text.replace(/(\b)"([^"]*)(\b)"/g, "$1&#8220;$2&#8221;$3")
 
                // Links
-               .replace(/"([^"]+)":(http\S+)/g, "<a href=\"$2\">$1</a>")
+               .replace(/"([^"]+)":(http\S+)/g, function(_, content, url) {  return make_tag('a', content, 'href="' + url + '"') })
 
                // Images
-               .replace(/!([^!]+)!:(http\S+)/g, "<a href=\"$2\"><img src=\"$1\"/></a>")
-               .replace(/!([^!]+)!/g, "<img src=\"$1\"/>")
+               .replace(/!([^!]+)!:(http\S+)/g, function(_, content, url) { return make_tag('a', ' '+ make_tag('img', "", "src=\"" + content + "\""), 'href="' + url + '"') })
+               .replace(/!([^!]+)!/g, function(content) { return make_tag('img', "", "src=\"" + cleanup(content) + "\"") })
 
                // Punctuation
                .replace(/--/g, "&#8212;")
                .replace(/\n/g, "<br/>")
-               .replace(/(\W)'([^']*)'(\W)/g, '$1&#8216;$2&#8217;$3')
+               .replace(/(\b)'([^']*)'(\b)/g, '$1&#8216;$2&#8217;$3')
                .replace(/'/g, "&#8217;")
                .replace(/ - /g, " &#8211; ")
                .replace(/\.\.\./g, "&#8230;")
                .replace(/\(r\)/g, "&#174;")
                .replace(/\(tm\)/g, "&#8482;")
                .replace(/\(c\)/g, "&#169;")
-               // TODO: dimension sign
+               // TODO: dimension sign, if I can ever be bothered to care
 
                // Acronyms
                .replace(/([A-Z]{2,})\(([^)]+)\)/g, "<span class=\"caps\"><acronym title=\"$2\">$1</acronym></span>")
-               .replace(/([A-Z]{2,})/g, "<span class=\"caps\">$1</span>")
+               .replace(/([A-Z]{2,})/g, function(content) { return make_tag("span", content + " ", "class=\"caps\"") })
 
                // Citations
-               .replace(/\?\?([^\?]+)\?\?/g, "<cite>$1</cite>")
-               //
+               .replace(/\?\?([^\?]+)\?\?/g, function(content) { return make_tag("cite", cleanup(content)) })
+
                // Spans
-               .replace(/%([^%]+)%/g, "<span>$1</span>")
+               .replace(/%([^%]+)%/g, function(content) { return make_tag("span", cleanup(content)) })
+
+               // Code
+               .replace(/(@[^@]+@)/g, function(content) { return make_tag("code", cleanup(content)) })
 
                // Bolding
-               .replace(/\*([^\*]+)\*/g, "<strong>$1</strong>")
-               .replace(/\*\*([^\*]+)\*\*/g, "<b>$1</b>")
+               .replace(/\*([^\*]+)\*/g, function(content) { return make_tag("strong", cleanup(content)) })
+               .replace(/\*\*([^\*]+)\*\*/g, function(content) { return make_tag("b", cleanup(content)) })
 
                // Italics
-               .replace(/\s+_([^_]+)_\s+/g, "<em>$1</em>")
-               .replace(/\s+__([^_]+)__\s+/g, "<i>$1</i>")
+               .replace(/\b_([^_]+)_\b/g, function(content) { return make_tag("em", cleanup(content)) })
+               .replace(/\b__([^_]+)__\b/g, function(content) { return make_tag("i", cleanup(content)) })
 
                // Insertions & Deletions
-               .replace(/\+([^\+]+)\+/g, "<ins>$1</ins>")
-               .replace(/-([^-]+)-/g, "<del>$1</del>")
+               .replace(/\+([^\+]+)\+/g, function(content) { return make_tag("ins", cleanup(content)) })
+               .replace(/-([^-]+)-/g, function(content) { return make_tag("del", cleanup(content)) })
 
                // Insertions & Deletions
-               .replace(/\^([^\^]+)\^/g, "<sup>$1</sup>")
-               .replace(/~([^~]+)~/g, "<sub>$1</sub>");
+               .replace(/\^([^\^]+)\^/g, function(content) { return make_tag("sup", cleanup(content)) })
+               .replace(/~([^~]+)~/g, function(content) { return make_tag("sub", cleanup(content)) });
   }
+
 
   function parse(doc) {
     function parse_list(list) {
@@ -289,56 +303,7 @@ var linen = (function() {
       };
     }
 
-    function parse_attrs(attrs) {
-      var ret = {
-          classes: "",
-          id: "",
-          lang: "",
-          style: "",
-          alignment: ""
-        };
-      for(var i in attrs) {
-        var atom = attrs[i];
 
-        // Look for classes and/or an id
-        if(atom[0] == '(') {
-          // Remove parens and split on #, for a quick and dirty parse
-          var parts = atom.replace(/^\(/, "").replace(/\)$/, "").split("#");
-
-          // Add to classes
-          if(ret.classes == "")
-            ret.classes = parts[0];
-          else
-            ret.classes = ret.classes + " " + parts[0];
-
-          // Set ID if it hasn't already been set
-          if(parts.length > 1 && ret.id == "")
-            ret.id = parts[1];
-        }
-
-        // Look for a language
-        else if(atom[0] == '[') {
-          ret.lang = atom.replace(/^\[/, "").replace(/\]$/, "");
-        }
-
-        // Look for a style
-        else if(atom[0] == '{') {
-          ret.style = atom.replace(/^\{/, "").replace(/\}$/, "");
-        }
-
-        // Look for alignment
-        else {
-          // Shortcut out if we already have an alignment set
-          if(ret.alignment == "") {
-            if(atom == '>') ret.alignment = "right";
-            if(atom == '<') ret.alignment = "left";
-            if(atom == '=') ret.alignment = "center";
-            if(atom == '<>') ret.alignment = "justify";
-          }
-        }
-      }
-      return ret;
-    }
 
     function parse_block(block) {
       var obj;
@@ -369,31 +334,83 @@ var linen = (function() {
     return res;
   }
 
+  function parse_attrs(attrs) {
+    var ret = {
+        classes: "",
+        id: "",
+        lang: "",
+        style: "",
+        alignment: ""
+      };
+    for(var i in attrs) {
+      var atom = attrs[i];
+
+      // Look for classes and/or an id
+      if(atom[0] == '(') {
+        // Remove parens and split on #, for a quick and dirty parse
+        var parts = atom.replace(/^\(/, "").replace(/\)$/, "").split("#");
+
+        // Add to classes
+        if(ret.classes == "")
+          ret.classes = parts[0];
+        else
+          ret.classes = ret.classes + " " + parts[0];
+
+        // Set ID if it hasn't already been set
+        if(parts.length > 1 && ret.id == "")
+          ret.id = parts[1];
+      }
+
+      // Look for a language
+      else if(atom[0] == '[') {
+        ret.lang = atom.replace(/^\[/, "").replace(/\]$/, "");
+      }
+
+      // Look for a style
+      else if(atom[0] == '{') {
+        ret.style = atom.replace(/^\{/, "").replace(/\}$/, "");
+      }
+
+      // Look for alignment
+      else {
+        // Shortcut out if we already have an alignment set
+        if(ret.alignment == "") {
+          if(atom == '>') ret.alignment = "right";
+          if(atom == '<') ret.alignment = "left";
+          if(atom == '=') ret.alignment = "center";
+          if(atom == '<>') ret.alignment = "justify";
+        }
+      }
+    }
+    return ret;
+  }
+
+
+  function html_attrs(obj) {
+    var attrs = " ";
+    var attrObj = obj.attrs;
+    if(attrObj.classes)
+      attrs += "class=\"" + attrObj.classes + "\" ";
+
+    if(attrObj.id)
+      attrs += "id=\"" + attrObj.id + "\" ";
+
+    if(attrObj.align)
+      attrObj.style = "text-align: " + attrObj.align + "; " + attrObj.style
+
+    if(attrObj.style)
+      attrs += "style=\"" + attrObj.style + "\" ";
+
+    if(attrObj.lang)
+      attrs += "lang=\"" + attrObj.lang + "\" ";
+
+    return attrs.slice(0, attrs.length - 1);
+  }
+
 
   function generate_code(blocks) {
     function generate_block(block) {
 
-      function html_attrs(obj) {
-        var attrs = " ";
-        var attrObj = obj.attrs;
-        if(attrObj.classes)
-          attrs += "class=\"" + attrObj.classes + "\" ";
-
-        if(attrObj.id)
-          attrs += "id=\"" + attrObj.id + "\" ";
-
-        if(attrObj.align)
-          attrObj.style = "text-align: " + attrObj.align + "; " + attrObj.style
-
-        if(attrObj.style)
-          attrs += "style=\"" + attrObj.style + "\" ";
-
-        if(attrObj.lang)
-          attrs += "lang=\"" + attrObj.lang + "\" ";
-
-        if(attrs == ' ') return "";
-        else return attrs;
-      }
 
       // Generate different kinds of code blocks:
       function heading(b) {
