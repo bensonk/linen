@@ -7,14 +7,15 @@ var linen = (function() {
         var items = list_text.split("\n");
         var list = [];
         for(var i in items) {
-          var parts = /^(\*+|#+)(\S*)\s+(.*)/.exec(items[i]);
+          var parts = /^(\*+|#+)(.*)/.exec(items[i]);
           if(parts) {
             types = { "*": "ul", "#": "ol" };
+            var lexed = lex_attrs(parts[2]);
             list.push({
               type: types[parts[1][0]],
               indent: parts[1].length,
-              content: parts[3],
-              attrs: lex_attrs(parts[2]).attrs
+              content: lexed.content,
+              attrs: lexed.attrs
             });
           }
         }
@@ -34,16 +35,21 @@ var linen = (function() {
     function lex_table(block) {
       var lines = block.split("\n");
       var ret = [];
+      var attrs;
       for(var i in lines) {
         var line = lines[i].replace(/^\|/, "").replace(/\|$/, "");
+        var lexed_attrs = lex_attrs(line[0]);
+        line[0] = lexed_attrs.content;
+        // Hacky, but this is how the grammar seems to be designed
+        // TODO: Figure out why this is causing the parser to hang
+        if(i == 0) attrs = lexed_attrs.attrs;
         ret.push(line.split("|"));
       }
 
-      // TODO: handle attrs
       return {
         type: 'table',
         extended: false,
-        attrs: [],
+        attrs: attrs,
         content: ret
       };
     }
