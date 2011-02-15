@@ -17,7 +17,8 @@ var tests = [ "p>(funstuff){color: green}. This is a test.\n\n"+
               "|foo|bar|baz|\n|one|two|three|\n|benson|ashleigh|brora|",
               "Testing a \"link\":http://www.google.com",
               "Here's an image:\n!http://farm6.static.flickr.com/5124/5285147296_3c465994cd_s.jpg!\nHere's one with a link:\n !http://farm6.static.flickr.com/5100/5422259101_a329ca0779_t.jpg!:http://google.com",
-              'And now for a %{color: red}red span%, and %{color: green}Alan Greenspan%.  A "(#linky){background-color: red}link":http://github.com for great justice.'
+              'And now for a %{color: red}red span%, and %{color: green}Alan Greenspan%.  A "(#linky){background-color: red}link":http://github.com for great justice.',
+              "div(foobar this is a test."
               ];
 
 

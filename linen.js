@@ -140,21 +140,21 @@ var linen = (function() {
       // Look for classes & ids
       else if(c == '(') {
         var start = i;
-        while(block[i++] !== ')') continue;
+        while(block[i++] !== ')' && i < block.length) continue;
         attrs.push(block.slice(start, i--));
       }
 
       // Look for languages
       else if(c == '[') {
         var start = i;
-        while(block[i++] !== ']') continue;
+        while(block[i++] !== ']' && i < block.length) continue;
         attrs.push(block.slice(start, i--));
       }
 
       // look for styles
       else if(c == '{') {
         var start = i;
-        while(block[i++] !== '}') continue;
+        while(block[i++] !== '}' && i < block.length) continue;
         attrs.push(block.slice(start, i--));
       }
 
