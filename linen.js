@@ -171,6 +171,13 @@ var linen = (function() {
   }
 
 
+  function escape_everything(text) {
+    // TODO: Escape more things. 
+    return text.replace(/</g, "&#60;")
+               .replace(/>/g, "&#62;")
+               .replace(/"/g, "&#34;");
+  }
+
   function do_substitutions(text) {
     // This is a simple substitution based system.  It might be worth
     // considering implementing this with a real parser, but that does sound
@@ -318,6 +325,12 @@ var linen = (function() {
       // Some special stuff for tables
       else if(block.type == "table")
         obj = parse_table(block);
+      else if(block.type == "bc")
+        obj = {
+          type: block.type,
+          content: escape_everything(block.content),
+          attrs: parse_attrs(block.attrs)
+        };
       // The general case
       else {
         obj = {

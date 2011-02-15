@@ -21,6 +21,7 @@ var tests = [ "p>(funstuff){color: green}. This is a test.\n\n"+
               "div(foobar this is a test.",
               "You did it!\nYou did it! You did it! You did it!",
               "~You~ did it!\n\n*You* did it!",
+              'bc. where thing = (cy-ay)(bx-ax) - (cx-ax)(by-ay)\n\nbc. <h1 class="foo">A header</h1>',
               ];
 
 
