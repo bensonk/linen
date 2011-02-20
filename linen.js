@@ -203,7 +203,7 @@ var linen = (function() {
       if(url[url.length - 1] == '.')
         return make_tag('a', content, 'href="' + url.slice(0, url.length -1) + '"') + ".";
       else
-        return make_tag('a', content, 'href="' + url + '"')
+        return make_tag('a', content, 'href="' + url + '"');
     }
 
     function cleanup(body, count) {
@@ -216,7 +216,7 @@ var linen = (function() {
     return text.replace(/(\b)"([^"]*)(\b)"/g, "$1&#8220;$2&#8221;$3")
 
                // Links
-               .replace(/"([^"]+)":(http\S+)/g, function(_, content, url) {  return make_tag('a', content, 'href="' + url + '"') })
+               .replace(/"([^"]+)":(http\S+)/g, function(_, content, url) {  return make_link(content, url) })
 
                // Images
                .replace(/!\b([^! \n]+)\b!:(http\S+)/g, function(_, content, url) {

@@ -23,7 +23,7 @@ var tests = [ "p>(funstuff){color: green}. This is a test.",
               "~You~ did it!*You* did it!",
               'bc. where thing = (cy-ay)(bx-ax) - (cx-ax)(by-ay)bc. <h1 class="foo">A header</h1>',
               '123-123-123\n123 -123- 123',
-              'p. x -Fun for the whole family-',
+              'p.  -Fun for the whole family- .',
               'p. A link at the end of a "sentence":http://textile.thresholdstate.com.',
               ];
 
