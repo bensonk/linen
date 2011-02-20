@@ -62,11 +62,17 @@ var linen = (function() {
       var i = 0, c = block[0];
       if(c == 'f' && block[i+1] == 'n') {
         // TODO: Implement footnotes properly
-        blockType = "f" + block[++i];
+        // i.e. grab the footnote id number that follows.
+        blockType = "fn";
+        i++;
       }
 
       // Lists are pretty different, so we'll treat them completely differently here.
-      if((c == '*' || c == '#') && (block[1] == ' ' || block[1] == '\t')) { return handle_list(block) }
+      if(c == '*' || c == '#') { 
+        var attrs = lex_attrs(block.slice(1));
+        if(/^\s+/.exec(attrs.content))
+          return handle_list(block)
+      }
 
       // Tables are also different, so they get their own function too.
       if(c == '|') { return lex_table(block) }
@@ -90,12 +96,11 @@ var linen = (function() {
       i++;
 
       var obj = lex_attrs(block.slice(i, block.length));
-      var match = /^(\.+)/.exec(obj.content);
+      var match = /^(\.+ )/.exec(obj.content);
       if(match) {
         obj.type = blockType;
-        obj.content = obj.content.replace(/^(\.+)/, "");
-        // TODO: check for extended attrs
-        obj.extended = false;
+        obj.content = obj.content.replace(/^(\.+ )/, "");
+        obj.extended = (match[1] == '.. ');
         obj.noBlock = false;
       }
       else {
@@ -194,8 +199,17 @@ var linen = (function() {
       return "<" + tag + html_attrs({ attrs: attrs }) + extras + ">" + lexed.content + "</"+tag+">";
     }
 
-    function cleanup(body) {
-      return body.slice(1, body.length - 1);
+    function make_link(content, url) {
+      if(url[url.length - 1] == '.')
+        return make_tag('a', content, 'href="' + url.slice(0, url.length -1) + '"') + ".";
+      else
+        return make_tag('a', content, 'href="' + url + '"')
+    }
+
+    function cleanup(body, count) {
+      if(typeof count == 'undefined')
+        count = 1;
+      return body.slice(count, body.length - count);
     }
 
                // We do quotes first because they are problematic.
@@ -229,7 +243,7 @@ var linen = (function() {
                .replace(/([A-Z]{2,})/g, function(content) { return make_tag("span", content + " ", "class=\"caps\"") })
 
                // Citations
-               .replace(/\?\?([^\?]+)\?\?/g, function(content) { return make_tag("cite", cleanup(content)) })
+               .replace(/\?{2}([^\?]+)\?{2}/g, function(content) { return make_tag("cite", cleanup(content)) })
 
                // Spans
                .replace(/%([^%]+)%/g, function(content) { return make_tag("span", cleanup(content)) })
@@ -247,7 +261,7 @@ var linen = (function() {
 
                // Insertions & Deletions
                .replace(/\+([^\+]+)\+/g, function(content) { return make_tag("ins", cleanup(content)) })
-               .replace(/-([^-]+)-/g, function(content) { return make_tag("del", cleanup(content)) })
+               .replace(/\s-([^-]+)-\s/g, function(content) { return ' ' + make_tag("del", cleanup(content, 2)) + ' ' })
 
                // Insertions & Deletions
                .replace(/\^([^\^]+)\^/g, function(content) { return make_tag("sup", cleanup(content)) })
