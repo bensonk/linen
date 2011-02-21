@@ -213,7 +213,7 @@ var linen = (function() {
     }
 
                // We do quotes first because they are problematic.
-    return text.replace(/(\b)"([^"]*)(\b)"/g, "$1&#8220;$2&#8221;$3")
+    return text.replace(/(\s)"(.*?)"([^:])/g, "$1&#8220;$2&#8221;$3")
 
                // Links
                .replace(/"([^"]+)":(http\S+)/g, function(_, content, url) {  return make_link(content, url) })
@@ -260,7 +260,7 @@ var linen = (function() {
                .replace(/\b__([^_]+)__\b/g, function(content) { return make_tag("i", cleanup(content)) })
 
                // Insertions & Deletions
-               .replace(/\+([^\+]+)\+/g, function(content) { return make_tag("ins", cleanup(content)) })
+               .replace(/\s\+([^\+]+)\+\s/g, function(content) { return ' ' + make_tag("ins", cleanup(content, 2)) + ' ' })
                .replace(/\s-([^-]+)-\s/g, function(content) { return ' ' + make_tag("del", cleanup(content, 2)) + ' ' })
 
                // Insertions & Deletions
