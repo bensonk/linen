@@ -28,6 +28,7 @@ var tests = [ 'p>(funstuff){color: green}. This is a "test".',
               '123-123-123\n123 -123- 123',
               'p.  -Fun for the whole family- .',
               'p. A link at the end of a "sentence":http://textile.thresholdstate.com.',
+              '1. A markdown formatted list\n2. That won\'t break the lexer'
               ];
 
 

@@ -93,6 +93,13 @@ var linen = (function() {
           blockType = "p";
         }
       }
+
+      // Temporary fix for not borking on markdown style lists
+      if(c && c.match(/\d{1}/)) {
+          blockType = "p";
+          i = -1;
+      }
+
       i++;
 
       var obj = lex_attrs(block.slice(i, block.length));
