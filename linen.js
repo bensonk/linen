@@ -94,17 +94,21 @@ var linen = (function() {
         }
       }
 
-      // Temporary fix for not borking on markdown style lists
-      if(c && c.match(/\d{1}/)) {
-          blockType = "p";
-          i = -1;
-      }
-
       i++;
 
       var obj = lex_attrs(block.slice(i, block.length));
       var match = /^(\.+ )/.exec(obj.content);
-      if(match) {
+
+      function is_valid_blocktype(bt) {
+        var blockTypes = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'bq', 'fn', 'p', 'bc', 'pre', 'table', 'ul', 'ol' ];
+        for(var i in blockTypes) {
+          if(blockTypes[i] == bt)
+            return true;
+        }
+        return false;
+      }
+
+      if(match && is_valid_blocktype(blockType) ) {
         obj.type = blockType;
         obj.content = obj.content.replace(/^(\.+ )/, "");
         obj.extended = (match[1] == '.. ');
