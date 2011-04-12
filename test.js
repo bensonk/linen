@@ -29,7 +29,8 @@ var tests = [ 'p>(funstuff){color: green}. This is a "test".',
               'p.  -Fun for the whole family- .',
               'p. A link at the end of a "sentence":http://textile.thresholdstate.com.',
               '1. A markdown formatted list\n2. That won\'t break the lexer',
-              'foobar. A block that isn\'t actually a block.'
+              'foobar. A block that isn\'t actually a block.',
+			  '*@Nested textile tags produce unbroken HTML@*'
               ];
 
 

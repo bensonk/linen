@@ -135,6 +135,7 @@ var linen = (function() {
 
   function lex_attrs(block) {
     var attrs = [];
+    var starts_with_html_tag = block.match(/^<\S+[^<>]*>/) !== null;
 
     for(var i = 0; i < block.length; i++) {
       var c = block[i];
@@ -142,7 +143,7 @@ var linen = (function() {
       // look for Alignment indicators
       if(c == '>') { attrs.push('>') }
       else if(c == '=') { attrs.push('=') }
-      else if(c == '<') {
+      else if(c == '<' && !starts_with_html_tag) {
         // This is a special case, because the <> pair is considered an atom
         if(block[i+1] == '>') {
           i++;
